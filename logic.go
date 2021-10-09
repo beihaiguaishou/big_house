@@ -121,10 +121,13 @@ func HouseInfo(name string) (house House, err error) {
 			house.Alias = p.Find("h1").Text()
 		}
 	})
-	doc.Find(".building-item__footer").Find(".price-desc").Each(func(i int, selection *goquery.Selection) {
+	doc.Find(".building-item__footer").Each(func(i int, selection *goquery.Selection) {
 		if i == 0 {
-			house.Price = strings.Trim(strings.Trim(selection.Text(), "\n"), " ")
+			house.Price = strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(selection.Find("div").Text()), " ", ""), "\n", "")
 		}
 	})
+	if house.Price[:len(house.Price)/2] == house.Price[len(house.Price)/2:] {
+		house.Price = house.Price[:len(house.Price)/2]
+	}
 	return
 }
