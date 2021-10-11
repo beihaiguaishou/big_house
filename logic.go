@@ -10,6 +10,9 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"github.com/xen0n/go-workwx"
+	"context"
+	"time"
 )
 
 type InRegistrationHouse struct {
@@ -128,6 +131,35 @@ func HouseInfo(name string) (house House, err error) {
 	})
 	if house.Price[:len(house.Price)/2] == house.Price[len(house.Price)/2:] {
 		house.Price = house.Price[:len(house.Price)/2]
+	}
+	return
+}
+
+func NotifyNewHouses(users string) (err error) {
+	registrationHouses, err := InRegistrationHouses()
+	if err != nil {
+		return
+	}
+	for index := range registrationHouses {
+		ih := &registrationHouses[index]
+		//_, _ = Redis.Del(context.TODO(), ih.Name).Result()
+		var notExist bool
+		if notExist, err = Redis.SetNX(context.TODO(), ih.Name, 1, time.Hour*24).Result(); err != nil {
+			return
+		} else if !notExist {
+			continue
+		}
+		var house House
+		if house, err = HouseInfo(ih.Name); err != nil {
+			return
+		}
+		if err = WorkWeChatApp.SendTextMessage(&workwx.Recipient{UserIDs: strings.Split(users, "|")},
+			fmt.Sprintf("区域:%s\n楼盘名:%s\n别名:%s\n价格:%s\n预售证号:%s\n预售范围:%s\n住房套数:%s\n登记时间:%s\n名单内释放时间:%s\n名单外释放时间:%s",
+				ih.Area, ih.Name, house.Alias, house.Price, ih.No, ih.Range, ih.Count, fmt.Sprintf("%s到%s", ih.RegisterStartTime, ih.RegisterEndTime), ih.InReleaseTime, ih.OutReleaseTime),
+			false); err != nil {
+			_, _ = Redis.Del(context.TODO(), ih.Name).Result()
+			return
+		}
 	}
 	return
 }
