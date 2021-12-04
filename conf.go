@@ -22,5 +22,6 @@ var Redis *redis.Client
 
 func initConf() {
 	WorkWeChatApp = workwx.New(workWeChatCorpID).WithApp(workWeChatAgentSecret, workWeChatAgentId)
+	WorkWeChatApp.SpawnAccessTokenRefresher()
 	Redis = redis.NewClient(&redis.Options{Addr: redisAddress, Password: redisPassword, DB: 2})
 }
